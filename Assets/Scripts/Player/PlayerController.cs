@@ -14,10 +14,15 @@ public class PlayerController : MonoBehaviour
 
     [Header("状态")]
     public bool isDashing;
+    public bool canWallJump;
 
     [Header("地面检测箱参数")]
-    public Vector2 size;
-    public Vector2 offset;
+    public Vector2 groundBoxSize;
+    public Vector2 groundBoxOffset;
+
+    [Header("墙壁检测箱参数")]
+    public Vector2 wallBoxSize;
+    public Vector2 wallBoxOffset;
 
     private Rigidbody2D rb2D;
     private float dashTimer;
@@ -37,15 +42,25 @@ public class PlayerController : MonoBehaviour
         Vector2 dir=new Vector2(inputX, inputY);
         Vector2 dirRaw=new Vector2(rawX, rawY);
         dashTimer += Time.deltaTime;
+
+        if(CheckGround())
+        {
+            canWallJump = true;
+        }
+
         Move(dir);
+
         if(Input.GetKeyDown(KeyCode.K))
         {
             Jump();
         }
+
         if(!isDashing&&Input.GetKeyDown(KeyCode.L)&&dashTimer>dashCoolTime)
         {
             Dash(dirRaw);
         }
+
+
     }
 
     public void Move(Vector2 dir)
@@ -64,7 +79,14 @@ public class PlayerController : MonoBehaviour
     {
         if(CheckGround())
         {
+            rb2D.velocity = new Vector2(rb2D.velocity.x,0);
             rb2D.velocity += Vector2.up * jumpForce;
+        }
+        else if(canWallJump&&CheckOnWall())
+        {
+            rb2D.velocity = new Vector2(rb2D.velocity.x, 0);
+            rb2D.velocity += Vector2.up * jumpForce;
+            canWallJump = false;
         }
     }
 
@@ -94,15 +116,23 @@ public class PlayerController : MonoBehaviour
         rb2D.gravityScale = 6;
     }
 
-
     public bool CheckGround()
     {
-        return Physics2D.OverlapBox((Vector2)transform.position + offset, size, 0, LayerMask.GetMask("Ground"));
+        return Physics2D.OverlapBox((Vector2)transform.position + groundBoxOffset, groundBoxSize, 0, LayerMask.GetMask("Ground"));
+    }
+
+    public bool CheckOnWall()
+    {
+        return Physics2D.OverlapBox((Vector2)transform.position + wallBoxOffset, wallBoxSize, 0, LayerMask.GetMask("Ground"))
+            || Physics2D.OverlapBox((Vector2)transform.position - wallBoxOffset, wallBoxSize, 0, LayerMask.GetMask("Ground"));
     }
 
     private void OnDrawGizmos()
     {
         Gizmos.color = Color.yellow;
-        Gizmos.DrawWireCube((Vector2)transform.position + offset, size);
+        Gizmos.DrawWireCube((Vector2)transform.position + groundBoxOffset, groundBoxSize);
+        Gizmos.color = Color.white;
+        Gizmos.DrawWireCube((Vector2)transform.position + wallBoxOffset, wallBoxSize);
+        Gizmos.DrawWireCube((Vector2)transform.position - wallBoxOffset, wallBoxSize);
     }
 }
