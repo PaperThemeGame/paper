@@ -15,6 +15,9 @@ public class PlayerController : MonoBehaviour
     [Header("状态")]
     public bool isDashing;
 
+    [Header("动画")]
+    private Animator anim;
+
     [Header("地面检测箱参数")]
     public Vector2 size;
     public Vector2 offset;
@@ -24,6 +27,7 @@ public class PlayerController : MonoBehaviour
 
     private void Start()
     {
+        anim = GetComponent<Animator>();
         rb2D = GetComponent<Rigidbody2D>();
         dashTimer = dashCoolTime;
     }
@@ -38,7 +42,23 @@ public class PlayerController : MonoBehaviour
         Vector2 dirRaw=new Vector2(rawX, rawY);
         dashTimer += Time.deltaTime;
         Move(dir);
-        if(Input.GetKeyDown(KeyCode.K))
+
+        if (inputX < 0)
+        {
+            transform.localScale = new Vector3(-1, 1, 1);
+            anim.SetBool("isRunning", true);
+        }
+        else if (inputX > 0)
+        {
+            transform.localScale = new Vector3(1, 1, 1);
+            anim.SetBool("isRunning", true);
+        }
+        else
+        {
+            anim.SetBool("isRunning", false);
+        }
+
+        if (Input.GetKeyDown(KeyCode.K))
         {
             Jump();
         }
