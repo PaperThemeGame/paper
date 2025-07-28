@@ -11,19 +11,28 @@ public class PlayerController : MonoBehaviour
     public float dashSpeed;
     public float dashTime;
     public float dashCoolTime;
+    public float coyoteTime;
 
     [Header("状态")]
     public bool isDashing;
+    public bool isClimb;
+
 
     [Header("动画")]
     private Animator anim;
 
     [Header("地面检测箱参数")]
-    public Vector2 size;
-    public Vector2 offset;
+    public Vector2 groundBoxSize;
+    public Vector2 groundBoxOffset;
+
+    [Header("墙壁检测箱参数")]
+    public Vector2 wallBoxSize;
+    public Vector2 wallBoxOffset;
 
     private Rigidbody2D rb2D;
     private float dashTimer;
+    private float coyoteTimerCounter;//用于记录人物离开地面滞空时间
+    public bool isStillOnGround;//用于记录玩家按下跳跃键之后是否仍然在地面检测范围内,用于防止土狼时间导致二段跳
 
     private void Start()
     {
@@ -40,8 +49,20 @@ public class PlayerController : MonoBehaviour
         float rawY= Input.GetAxisRaw("Vertical");
         Vector2 dir=new Vector2(inputX, inputY);
         Vector2 dirRaw=new Vector2(rawX, rawY);
+
         dashTimer += Time.deltaTime;
-        Move(dir);
+        if (CheckGround())
+        {
+            if(!isStillOnGround)
+            {
+                coyoteTimerCounter = coyoteTime;
+            }
+        }
+        else
+        {
+            coyoteTimerCounter -= Time.deltaTime;
+            isStillOnGround = false;
+        }
 
         if (inputX < 0)
         {
@@ -58,13 +79,30 @@ public class PlayerController : MonoBehaviour
             anim.SetBool("isRunning", false);
         }
 
+        Move(dir);
+
         if (Input.GetKeyDown(KeyCode.K))
         {
-            Jump();
+            if(coyoteTimerCounter>0)
+            {
+                Jump();
+                coyoteTimerCounter = 0;
+            }
         }
+
         if(!isDashing&&Input.GetKeyDown(KeyCode.L)&&dashTimer>dashCoolTime)
         {
             Dash(dirRaw);
+        }
+
+        if(Input.GetKey(KeyCode.J)&&CheckWall())
+        {
+            rb2D.gravityScale = 0;
+            rb2D.velocity=Vector2.zero;
+        }
+        else
+        {
+            rb2D.gravityScale = 6;
         }
     }
 
@@ -82,10 +120,9 @@ public class PlayerController : MonoBehaviour
 
     public void Jump()
     {
-        if(CheckGround())
-        {
-            rb2D.velocity += Vector2.up * jumpForce;
-        }
+        isStillOnGround = true;
+        rb2D.velocity = new Vector2(rb2D.velocity.x, 0);
+        rb2D.velocity += Vector2.up * jumpForce;
     }
 
     public void Dash(Vector2 dir)
@@ -94,7 +131,7 @@ public class PlayerController : MonoBehaviour
         dashTimer = 0;
         if(dir==Vector2.zero)
         {
-            rb2D.velocity += dashSpeed *(Vector2)transform.right.normalized;
+            rb2D.velocity += dashSpeed *new Vector2(transform.localScale.x,0);
         }
         else
         {
@@ -117,12 +154,21 @@ public class PlayerController : MonoBehaviour
 
     public bool CheckGround()
     {
-        return Physics2D.OverlapBox((Vector2)transform.position + offset, size, 0, LayerMask.GetMask("Ground"));
+        return Physics2D.OverlapBox((Vector2)transform.position + groundBoxOffset, groundBoxSize, 0, LayerMask.GetMask("Ground"));
+    }
+
+    public bool CheckWall()
+    {
+        return Physics2D.OverlapBox((Vector2)transform.position + new Vector2(wallBoxOffset.x, wallBoxOffset.y), wallBoxSize, 0, LayerMask.GetMask("Ground"))
+            || Physics2D.OverlapBox((Vector2)transform.position + new Vector2(-wallBoxOffset.x, wallBoxOffset.y),wallBoxSize,LayerMask.GetMask("Ground"));
     }
 
     private void OnDrawGizmos()
     {
         Gizmos.color = Color.yellow;
-        Gizmos.DrawWireCube((Vector2)transform.position + offset, size);
+        Gizmos.DrawWireCube((Vector2)transform.position + groundBoxOffset, groundBoxSize);
+        Gizmos.color = Color.red;
+        Gizmos.DrawWireCube((Vector2)transform.position + new Vector2(wallBoxOffset.x, wallBoxOffset.y), wallBoxSize);
+        Gizmos.DrawWireCube((Vector2)transform.position + new Vector2(-wallBoxOffset.x, wallBoxOffset.y), wallBoxSize);
     }
 }
