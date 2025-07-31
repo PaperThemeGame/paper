@@ -31,7 +31,10 @@ public class PlayerController : MonoBehaviour
 
     private Rigidbody2D rb2D;
     private float dashTimer;
+    private Coroutine dashC;//用于存储冲刺协程 
     private float coyoteTimerCounter;//用于记录人物离开地面滞空时间
+    private float normalGravityScale;
+    [HideInInspector]
     public bool isStillOnGround;//用于记录玩家按下跳跃键之后是否仍然在地面检测范围内,用于防止土狼时间导致二段跳
 
     private void Start()
@@ -39,6 +42,7 @@ public class PlayerController : MonoBehaviour
         anim = GetComponent<Animator>();
         rb2D = GetComponent<Rigidbody2D>();
         dashTimer = dashCoolTime;
+        normalGravityScale=rb2D.gravityScale;
     }
 
     private void Update()
@@ -49,8 +53,10 @@ public class PlayerController : MonoBehaviour
         float rawY= Input.GetAxisRaw("Vertical");
         Vector2 dir=new Vector2(inputX, inputY);
         Vector2 dirRaw=new Vector2(rawX, rawY);
-
-        dashTimer += Time.deltaTime;
+        if(!isDashing)
+        {
+            dashTimer += Time.deltaTime;
+        }
         if (CheckGround())
         {
             if(!isStillOnGround)
@@ -90,19 +96,19 @@ public class PlayerController : MonoBehaviour
             }
         }
 
-        if(!isDashing&&Input.GetKeyDown(KeyCode.L)&&dashTimer>dashCoolTime)
+        if(Input.GetKeyDown(KeyCode.L)&&dashTimer>dashCoolTime)
         {
             Dash(dirRaw);
         }
 
-        if(Input.GetKey(KeyCode.J)&&CheckWall())
+        if(Input.GetKeyDown(KeyCode.J)&&CheckWall())
         {
             rb2D.gravityScale = 0;
             rb2D.velocity=Vector2.zero;
         }
-        else
+        else if(Input.GetKeyUp(KeyCode.J))
         {
-            rb2D.gravityScale = 6;
+            rb2D.gravityScale = normalGravityScale;
         }
     }
 
@@ -127,6 +133,13 @@ public class PlayerController : MonoBehaviour
 
     public void Dash(Vector2 dir)
     {
+        if(isDashing&&dashC!=null)
+        {
+            StopCoroutine(dashC);
+            isDashing = false;
+            rb2D.drag = 0;
+            rb2D.gravityScale = normalGravityScale;
+        }
         rb2D.velocity = Vector2.zero;
         dashTimer = 0;
         if(dir==Vector2.zero)
@@ -137,7 +150,12 @@ public class PlayerController : MonoBehaviour
         {
             rb2D.velocity += dashSpeed * dir.normalized;
         }
-        StartCoroutine(IDash());
+        dashC = StartCoroutine(IDash());
+    }
+
+    public void ResetDashTimer()
+    {
+        dashTimer = dashCoolTime + 1;
     }
 
     public IEnumerator IDash()
@@ -148,7 +166,7 @@ public class PlayerController : MonoBehaviour
         yield return new WaitForSeconds(dashTime);
         isDashing = false;
         rb2D.drag = 0;
-        rb2D.gravityScale = 6;
+        rb2D.gravityScale = normalGravityScale;
     }
 
 

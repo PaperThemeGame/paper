@@ -9,10 +9,15 @@ public class Player : MonoBehaviour
 
     private void OnTriggerEnter2D(Collider2D collision)
     {
-        if (collision.CompareTag("CanDestory"))
+        if(controller.isDashing)
         {
-            if (controller.isDashing)
+            if (collision.CompareTag("CanDestory"))
             {
+                if(collision.gameObject.TryGetComponent(out Bubbles bubbles))
+                {
+                    controller.ResetDashTimer();
+                }
+                controller.ResetDashTimer();
                 Destroy(collision.gameObject);
             }
         }
