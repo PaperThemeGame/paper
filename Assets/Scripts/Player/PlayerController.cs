@@ -12,10 +12,12 @@ public class PlayerController : MonoBehaviour
     public float dashTime;
     public float dashCoolTime;
     public float coyoteTime;
+    public Transform spawnPos;
 
     [Header("状态")]
     public bool isDashing;
     public bool isClimb;
+    private bool isRevive;
 
 
     [Header("动画")]
@@ -50,16 +52,16 @@ public class PlayerController : MonoBehaviour
         float inputX = Input.GetAxis("Horizontal");
         float inputY = Input.GetAxis("Vertical");
         float rawX = Input.GetAxisRaw("Horizontal");
-        float rawY= Input.GetAxisRaw("Vertical");
-        Vector2 dir=new Vector2(inputX, inputY);
-        Vector2 dirRaw=new Vector2(rawX, rawY);
-        if(!isDashing)
+        float rawY = Input.GetAxisRaw("Vertical");
+        Vector2 dir = new Vector2(inputX, inputY);
+        Vector2 dirRaw = new Vector2(rawX, rawY);
+        if (!isDashing)
         {
             dashTimer += Time.deltaTime;
         }
         if (CheckGround())
         {
-            if(!isStillOnGround)
+            if (!isStillOnGround)
             {
                 coyoteTimerCounter = coyoteTime;
             }
@@ -89,26 +91,46 @@ public class PlayerController : MonoBehaviour
 
         if (Input.GetKeyDown(KeyCode.K))
         {
-            if(coyoteTimerCounter>0)
+            if (coyoteTimerCounter > 0)
             {
                 Jump();
                 coyoteTimerCounter = 0;
             }
         }
 
-        if(Input.GetKeyDown(KeyCode.L)&&dashTimer>dashCoolTime)
+        if (Input.GetKeyDown(KeyCode.L) && dashTimer > dashCoolTime)
         {
             Dash(dirRaw);
         }
 
-        if(Input.GetKeyDown(KeyCode.J)&&CheckWall())
+        if (Input.GetKeyDown(KeyCode.J) && CheckWall())
         {
             rb2D.gravityScale = 0;
-            rb2D.velocity=Vector2.zero;
+            rb2D.velocity = Vector2.zero;
         }
-        else if(Input.GetKeyUp(KeyCode.J))
+        else if (Input.GetKeyUp(KeyCode.J))
         {
             rb2D.gravityScale = normalGravityScale;
+        }
+
+        if (Input.GetKeyDown(KeyCode.R))
+        {
+            Respawn();
+        }
+
+        if (isRevive)
+        {
+            float reviveTimer = 0;
+            if (reviveTimer < 0.5)
+            {
+                reviveTimer += 0.1f;
+            }
+            else
+            {
+                isRevive = false;
+                reviveTimer = 0;
+            }
+            
         }
     }
 
@@ -142,6 +164,14 @@ public class PlayerController : MonoBehaviour
         }
         rb2D.velocity = Vector2.zero;
         dashTimer = 0;
+        
+        // 更新起跳位置
+        RockRepulsion rockRepulsion = FindObjectOfType<RockRepulsion>();
+        if (rockRepulsion != null)
+        {
+            rockRepulsion.UpdatePlayerOriginalPos();
+        }
+        
         if(dir==Vector2.zero)
         {
             rb2D.velocity += dashSpeed *new Vector2(transform.localScale.x,0);
@@ -158,6 +188,23 @@ public class PlayerController : MonoBehaviour
         dashTimer = dashCoolTime + 1;
     }
 
+    public bool IsDashing()
+    {
+        return isDashing;
+    }
+
+    public void ResetDash()
+    {
+        if (dashC != null)
+        {
+            StopCoroutine(dashC);
+            isDashing = false;
+            rb2D.drag = 0;
+            rb2D.gravityScale = normalGravityScale;
+        }
+        dashTimer = 0;
+    }
+
     public IEnumerator IDash()
     {
         isDashing = true;
@@ -170,6 +217,15 @@ public class PlayerController : MonoBehaviour
     }
 
 
+
+
+    #region 重生
+    public void Respawn()
+    {
+        transform.position = spawnPos.position;
+        isRevive = true;
+    }
+    #endregion
     public bool CheckGround()
     {
         return Physics2D.OverlapBox((Vector2)transform.position + groundBoxOffset, groundBoxSize, 0, LayerMask.GetMask("Ground"));
