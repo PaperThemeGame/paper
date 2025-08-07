@@ -11,6 +11,7 @@ public class PlayerController : MonoBehaviour
     public float dashSpeed;
     public float dashTime;
     public float dashCoolTime;
+    public float dashDrag;
     public float coyoteTime;
 
     [Header("状态")]
@@ -162,7 +163,7 @@ public class PlayerController : MonoBehaviour
     {
         isDashing = true;
         rb2D.gravityScale = 0;
-        rb2D.drag = 5;
+        rb2D.drag = dashDrag;
         yield return new WaitForSeconds(dashTime);
         isDashing = false;
         rb2D.drag = 0;
