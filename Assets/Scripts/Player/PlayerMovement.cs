@@ -67,7 +67,7 @@ public class PlayerMovement : MonoBehaviour
             isStillOnGround = false;
         }
 
-        if(Input.GetKeyDown(KeyCode.Space))
+        if(Input.GetKeyDown(KeyCode.K))
         {
             if(CheckGround() || coyoteTimer>0)
             {
@@ -76,7 +76,7 @@ public class PlayerMovement : MonoBehaviour
             }
         }
 
-        if (Input.GetKeyDown(KeyCode.LeftShift)&&dashTimer>=dashCoolTime)
+        if (Input.GetKeyDown(KeyCode.L)&&dashTimer>=dashCoolTime)
         {
             Dash(moveInput);
         }
