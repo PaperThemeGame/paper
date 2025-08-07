@@ -6,7 +6,7 @@ public class SpawnPoint : MonoBehaviour
     {
         if (collision.CompareTag("Player"))
         {
-            GameObject.FindGameObjectWithTag("Player").GetComponent<PlayerController>().spawnPos = transform;
+            GameObject.FindGameObjectWithTag("Player").GetComponent<PlayerMovement>().spawnPos = transform;
         }
     }
     

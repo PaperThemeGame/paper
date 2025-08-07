@@ -5,6 +5,8 @@ using UnityEngine;
 
 public class PlayerMovement : MonoBehaviour
 {
+    public Transform spawnPos;
+
     [Header("移动相关")]
     public float moveMaxSpeed;//最大移动速度
     [Range(0f, 20f)]
@@ -17,6 +19,7 @@ public class PlayerMovement : MonoBehaviour
     [Header("跳跃相关")]
     public float jumpForce;
     public float coyoteTime;//土狼时间
+    public float wallJumpForce;//蹬墙跳力度
 
     [Header("冲刺相关")]
     public float dashSpeed;
@@ -28,11 +31,16 @@ public class PlayerMovement : MonoBehaviour
     public Vector2 groundBoxSize;
     public Vector2 groundBoxOffset;
 
+    [Header("墙壁检测箱参数")]
+    public Vector2 wallBoxSize;
+    public Vector2 wallBoxOffset;
+
     [Header("状态")]
     public bool isJumping;
     public bool isDash;
     public bool isStillOnGround;
 
+    private Animator animator;
     private Vector2 moveInput;
     private Rigidbody2D rb2D;
     private float gravityScale;
@@ -45,12 +53,28 @@ public class PlayerMovement : MonoBehaviour
         rb2D=GetComponent<Rigidbody2D>();
         gravityScale=rb2D.gravityScale;
         dashTimer = dashCoolTime;
+        animator=GetComponent<Animator>();
     }
 
     private void Update()
     {
         moveInput.x = Input.GetAxisRaw("Horizontal");
         moveInput.y = Input.GetAxisRaw("Vertical");
+
+        if (moveInput.x < 0)
+        {
+            transform.localScale = new Vector3(-1, 1, 1);
+            animator.SetBool("isRunning", true);
+        }
+        else if (moveInput.x > 0)
+        {
+            transform.localScale = new Vector3(1, 1, 1);
+            animator.SetBool("isRunning", true);
+        }
+        else
+        {
+            animator.SetBool("isRunning", false);
+        }
 
         dashTimer += Time.deltaTime;
 
@@ -73,6 +97,16 @@ public class PlayerMovement : MonoBehaviour
             {
                 Jump();
                 coyoteTimer=0;
+            }
+
+            if(!CheckGround() && CheckLeftWall())
+            {
+                WallJump(new Vector2(1, 1));
+            }
+
+            if (!CheckGround() && CheckRightWall())
+            {
+                WallJump(new Vector2(-1, 1));
             }
         }
 
@@ -125,6 +159,12 @@ public class PlayerMovement : MonoBehaviour
         isStillOnGround = true;
     }
 
+    public void WallJump(Vector2 dir)
+    {
+        rb2D.velocity = new Vector2(rb2D.velocity.x, 0);
+        rb2D.velocity += wallJumpForce * dir;
+    }
+
     public void Dash(Vector2 dir)
     {
         dashTimer = 0;//清空冲刺计时器时间
@@ -147,6 +187,15 @@ public class PlayerMovement : MonoBehaviour
         rb2D.gravityScale = gravityScale;
         rb2D.drag = 0;
         isDash = false;
+        if(CheckGround())
+        {
+            ResetDashCoolTime();
+        }
+    }
+
+    public void ResetDashCoolTime()
+    {
+        dashTimer = dashCoolTime;
     }
 
     public bool CheckGround()
@@ -154,13 +203,23 @@ public class PlayerMovement : MonoBehaviour
         return Physics2D.OverlapBox((Vector2)transform.position + groundBoxOffset, groundBoxSize, 0, LayerMask.GetMask("Ground"));
     }
 
+    public bool CheckLeftWall()
+    {
+        return Physics2D.OverlapBox((Vector2)transform.position + new Vector2(-wallBoxOffset.x, wallBoxOffset.y), wallBoxSize,0,LayerMask.GetMask("Ground"));
+    }
+
+    public bool CheckRightWall()
+    {
+        return Physics2D.OverlapBox((Vector2)transform.position + new Vector2(wallBoxOffset.x, wallBoxOffset.y), wallBoxSize, 0, LayerMask.GetMask("Ground"));
+    }
+
     private void OnDrawGizmos()
     {
         Gizmos.color = Color.yellow;
         Gizmos.DrawWireCube((Vector2)transform.position + groundBoxOffset, groundBoxSize);
-        //Gizmos.color = Color.red;
-        //Gizmos.DrawWireCube((Vector2)transform.position + new Vector2(wallBoxOffset.x, wallBoxOffset.y), wallBoxSize);
-        //Gizmos.DrawWireCube((Vector2)transform.position + new Vector2(-wallBoxOffset.x, wallBoxOffset.y), wallBoxSize);
+        Gizmos.color = Color.red;
+        Gizmos.DrawWireCube((Vector2)transform.position + new Vector2(wallBoxOffset.x, wallBoxOffset.y), wallBoxSize);
+        Gizmos.DrawWireCube((Vector2)transform.position + new Vector2(-wallBoxOffset.x, wallBoxOffset.y), wallBoxSize);
     }
 
 }
