@@ -4,20 +4,20 @@ using UnityEngine;
 
 public class Player : MonoBehaviour
 {
-    public PlayerController controller;
+    public PlayerMovement movement;
 
 
     private void OnTriggerEnter2D(Collider2D collision)
     {
-        if(controller.isDashing)
+        if(movement.isDash)
         {
             if (collision.CompareTag("CanDestory"))
             {
                 if(collision.gameObject.TryGetComponent(out Bubbles bubbles))
                 {
-                    controller.ResetDashTimer();
+                    movement.ResetDashCoolTime();
                 }
-                controller.ResetDashTimer();
+                movement.ResetDashCoolTime();
                 Destroy(collision.gameObject);
             }
         }
