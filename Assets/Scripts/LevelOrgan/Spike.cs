@@ -4,11 +4,11 @@ public class Spike : MonoBehaviour
 {
     private bool isEnter;
     [SerializeField]
-    private PlayerController playerController;
+    private PlayerMovement playerMovement;
     // Start is called before the first frame update
     void Start()
     {
-        playerController = GameObject.FindGameObjectWithTag("Player").GetComponent<PlayerController>();
+        playerMovement = GameObject.FindGameObjectWithTag("Player").GetComponent<PlayerMovement>();
     }
 
     // Update is called once per frame
@@ -16,7 +16,7 @@ public class Spike : MonoBehaviour
     {
         if (isEnter)
         {
-            playerController.Respawn();
+            playerMovement.Respawn();
             isEnter = false;
         }
     }

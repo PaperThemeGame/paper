@@ -14,7 +14,8 @@ public class Bubbles : MonoBehaviour
             Mimosa mimosa = hitCollider.GetComponent<Mimosa>();
             if (mimosa != null)
             {
-                Destroy(mimosa.gameObject);
+                mimosa.GetComponent<Animator>().SetBool("isTriggered", true);
+                mimosa.GetComponent<BoxCollider2D>().enabled = false;
             }
         }
     }

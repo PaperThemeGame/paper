@@ -78,28 +78,28 @@ public class PlayerMovement : MonoBehaviour
 
         dashTimer += Time.deltaTime;
 
-        if(CheckGround())
+        if (CheckGround())
         {
-            if(!isStillOnGround)
+            if (!isStillOnGround)
             {
                 coyoteTimer = coyoteTime;
             }
         }
         else
         {
-            coyoteTimer-=Time.deltaTime;
+            coyoteTimer -= Time.deltaTime;
             isStillOnGround = false;
         }
 
-        if(Input.GetKeyDown(KeyCode.K))
+        if (Input.GetKeyDown(KeyCode.K))
         {
-            if(CheckGround() || coyoteTimer>0)
+            if (CheckGround() || coyoteTimer > 0)
             {
                 Jump();
-                coyoteTimer=0;
+                coyoteTimer = 0;
             }
 
-            if(!CheckGround() && CheckLeftWall())
+            if (!CheckGround() && CheckLeftWall())
             {
                 WallJump(new Vector2(1, 1));
             }
@@ -110,9 +110,14 @@ public class PlayerMovement : MonoBehaviour
             }
         }
 
-        if (Input.GetKeyDown(KeyCode.L)&&dashTimer>=dashCoolTime)
+        if (Input.GetKeyDown(KeyCode.L) && dashTimer >= dashCoolTime)
         {
             Dash(moveInput);
+        }
+        
+        if (Input.GetKeyDown(KeyCode.R))
+        {
+            Respawn();
         }
     }
 
@@ -193,6 +198,14 @@ public class PlayerMovement : MonoBehaviour
         }
     }
 
+
+
+    #region 重生
+    public void Respawn()
+    {
+        transform.position = spawnPos.position;
+    }
+    #endregion
     public void ResetDashCoolTime()
     {
         dashTimer = dashCoolTime;
