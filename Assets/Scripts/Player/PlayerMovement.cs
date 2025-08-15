@@ -48,6 +48,21 @@ public class PlayerMovement : MonoBehaviour
     private float coyoteTimer;
     private float dashTimer;
 
+    private void OnEnable()
+    {
+        EventCenter.Instance.AddListener("Test1", OnTest1);
+    }
+
+    private void OnDisable()
+    {
+        EventCenter.Instance.RemoveListener("Test1",OnTest1);
+    }
+
+    public void OnTest1()
+    {
+        Debug.Log(gameObject.name);
+    }
+
     private void Start()
     {
         rb2D=GetComponent<Rigidbody2D>();
