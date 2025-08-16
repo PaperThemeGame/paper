@@ -6,6 +6,11 @@ using UnityEngine;
 public class PlayerMovement : MonoBehaviour
 {
     public Transform spawnPos;
+    
+    //上升和下降时重力比例大小切换
+    [Header("重力相关")]
+    public float normalGravityScale;
+    public float downGravityScale;
 
     [Header("移动相关")]
     public float moveMaxSpeed;//最大移动速度
@@ -47,21 +52,6 @@ public class PlayerMovement : MonoBehaviour
 
     private float coyoteTimer;
     private float dashTimer;
-
-    private void OnEnable()
-    {
-        EventCenter.Instance.AddListener("Test1", OnTest1);
-    }
-
-    private void OnDisable()
-    {
-        EventCenter.Instance.RemoveListener("Test1",OnTest1);
-    }
-
-    public void OnTest1()
-    {
-        Debug.Log(gameObject.name);
-    }
 
     private void Start()
     {
@@ -134,6 +124,12 @@ public class PlayerMovement : MonoBehaviour
         {
             Respawn();
         }
+
+        if (!isDash)
+        {
+            ChangeGravityScale();
+        }
+
     }
 
     private void FixedUpdate()
@@ -224,6 +220,18 @@ public class PlayerMovement : MonoBehaviour
     public void ResetDashCoolTime()
     {
         dashTimer = dashCoolTime;
+    }
+
+    public void ChangeGravityScale()
+    {
+        if(rb2D.velocity.y > 0)
+        {
+            rb2D.gravityScale = normalGravityScale;
+        }
+        else if(rb2D.velocity.y < 0)
+        {
+            rb2D.gravityScale = downGravityScale;
+        }
     }
 
     public bool CheckGround()
