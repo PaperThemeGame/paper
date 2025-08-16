@@ -98,7 +98,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   attackCoolTime: 0
-  fallingBlockPrefab: {fileID: 2929611074393100245, guid: 19f1bbff01b05ca439596834461675ca, type: 3}
+  fallingBlockPrefab: {fileID: 0}
   dropSpeed: 20
   dropInterval: -0.36
   dropRange: 10

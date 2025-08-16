@@ -250,4 +250,8 @@ public class PlayerMovement : MonoBehaviour
         Gizmos.DrawWireCube((Vector2)transform.position + new Vector2(-wallBoxOffset.x, wallBoxOffset.y), wallBoxSize);
     }
 
+   public bool IsDashing()
+    {
+        return isDash;
+    }
 }

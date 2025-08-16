@@ -7,25 +7,27 @@ public class RockRepulsion : MonoBehaviour
     [Header("冲刺碰撞设置")]
     public float dashRepulsionForce = 15f;      // 冲刺碰撞反弹力度
     public float rockFallDelay = 0.2f;         // 岩石下落延迟时间
-    [Header("回弹调节")]
-    public float returnSpeed = 5f;            // 回弹速度（值越小越慢）
-    public float bounceDistanceMultiplier = 1f; // 反弹距离倍率（1=回到起跳点，0.5=一半距离，2=两倍距离）
-    [Range(0.1f, 10f)]
-    public float bounceSpeedMultiplier = 1f;    // 反弹速度倍率（调节按钮）
-    [Header("抛物线设置")]
-    public float parabolaHeight = 2f;         // 抛物线高度（值越大弧线越高）
-    public bool useParabolaPath = true;       // 是否使用抛物线路径
+    
+    [Header("抛物线反弹设置")]
+    [Range(1f, 10f)] public float parabolaSpeed = 5f; // 抛物线反弹速度（1=慢，5=中等，10=快）
+    [Range(0.5f, 5f)] public float parabolaHeight = 2f; // 抛物线高度（0.5=低弧线，2=中等，5=高弧线）
     
     [Header("岩石设置")]
     public float fallForce = 10f;              // 岩石下落力度
-    public LayerMask groundLayer = 1 << 8;    // 地面图层（默认第8层）
+    public LayerMask groundLayer = 1 << 6;    // 地面图层（根据实际调试改为第6层）
+    
+    // 以下参数已弃用（保留兼容性但不再显示在Inspector中）
+    [HideInInspector] public float returnSpeed = 5f;            // 已弃用：回弹速度
+    [HideInInspector] [Range(0.1f, 10f)] public float bounceSpeedMultiplier = 1f;    // 已弃用：反弹速度倍率
+    [HideInInspector] public bool useParabolaPath = true;       // 已弃用：抛物线路径开关
     
     private Transform playerTransform;         // 玩家Transform
     private Rigidbody2D playerRb2D;          // 玩家刚体
     private Rigidbody2D rockRb2D;            // 岩石刚体
-    private PlayerController playerController; // 玩家控制器
+    private PlayerMovement playerMovement;     // 玩家移动控制器（原PlayerController）
     private bool hasFallen = false;          // 岩石是否已下落
     private bool hasLanded = false;          // 岩石是否已落地
+    private bool hasRecordedStartPos = false; // 是否已记录起跳位置
     private Vector3 playerOriginalPos;       // 玩家起跳位置
     
     void Start()
@@ -36,7 +38,7 @@ public class RockRepulsion : MonoBehaviour
         {
             playerTransform = player.transform;
             playerRb2D = player.GetComponent<Rigidbody2D>();
-            playerController = player.GetComponent<PlayerController>();
+            playerMovement = player.GetComponent<PlayerMovement>();
         }
         
         // 获取岩石刚体
@@ -51,25 +53,31 @@ public class RockRepulsion : MonoBehaviour
     // 检测碰撞
     private void OnCollisionEnter2D(Collision2D collision)
     {
-        // 检查是否是玩家碰撞（不停止下落）
-        if (collision.gameObject.CompareTag("Player") && !hasFallen)
+        // 检查是否是玩家碰撞
+        if (collision.gameObject.CompareTag("Player"))
         {
-            // 检查玩家是否处于冲刺状态
-            if (playerController != null && playerController.IsDashing())
+            if (!hasFallen && playerMovement != null && playerMovement.isDash)
             {
-                // 1. 重置玩家冲刺
-                playerController.ResetDash();
+                // 1. 立即清除玩家速度
+                if (playerRb2D != null)
+                {
+                    playerRb2D.velocity = Vector2.zero;
+                    playerRb2D.angularVelocity = 0f;
+                }
                 
-                // 2. 平滑移动玩家回起跳位置
-                StartCoroutine(SmoothReturnToOriginalPos());
+                // 2. 重置玩家冲刺
+                playerMovement.ResetDashCoolTime();
                 
-                // 3. 触发岩石下落（无论是否碰撞玩家都会继续下落）
+                // 3. 抛物线后半段反弹回到起跳位置
+                StartCoroutine(ParabolaReturnToOriginalPos());
+                
+                // 4. 触发岩石下落
                 StartCoroutine(TriggerRockFall());
             }
         }
         
-        // 检测岩石接触地面（只有碰到地面才会停止）
-        if (!hasLanded && collision.gameObject.layer == groundLayer)
+        // 检测岩石接触地面
+        if (collision.gameObject.layer == groundLayer && !hasLanded)
         {
             hasLanded = true;
             
@@ -80,14 +88,6 @@ public class RockRepulsion : MonoBehaviour
                 rockRb2D.velocity = Vector2.zero;
                 rockRb2D.angularVelocity = 0f;
             }
-            
-            Debug.Log("岩石已落地并固定");
-        }
-        
-        // 检测岩石碰到其他物体（继续下落）
-        if (hasFallen && !hasLanded && collision.gameObject.CompareTag("Player"))
-        {
-            Debug.Log("岩石碰到玩家但继续下落");
         }
     }
     
@@ -101,7 +101,6 @@ public class RockRepulsion : MonoBehaviour
             rockRb2D.isKinematic = false;
             rockRb2D.AddForce(Vector2.down * fallForce, ForceMode2D.Impulse);
             hasFallen = true;
-            Debug.Log("岩石开始下落");
         }
     }
     
@@ -111,95 +110,90 @@ public class RockRepulsion : MonoBehaviour
         if (playerTransform != null)
         {
             playerOriginalPos = playerTransform.position;
-            Debug.Log("已更新玩家起跳位置: " + playerOriginalPos);
         }
     }
     
-    // 平滑移动玩家回起跳位置（支持抛物线路径）
-    private IEnumerator SmoothReturnToOriginalPos()
+    // 抛物线后半段反弹（上升-下降回到起跳位置）
+    private IEnumerator ParabolaReturnToOriginalPos()
     {
         if (playerTransform == null) yield break;
-        
-        // 禁用玩家控制，避免回弹过程中移动
-        if (playerController != null)
+
+        // 禁用玩家控制
+        if (playerMovement != null)
         {
-            playerController.enabled = false;
+            playerMovement.enabled = false;
         }
-        
+
+        // 禁用物理
+        if (playerRb2D != null)
+        {
+            playerRb2D.velocity = Vector2.zero;
+            playerRb2D.angularVelocity = 0f;
+        }
+
         Vector3 startPos = playerTransform.position;
+        Vector3 targetPos = playerOriginalPos; // 直接回到起跳位置
         
-        // 根据距离倍率计算实际反弹距离
-        Vector3 targetPos = startPos + (playerOriginalPos - startPos) * bounceDistanceMultiplier;
-        
-        float distance = Vector3.Distance(startPos, targetPos);
-        float adjustedSpeed = returnSpeed * bounceSpeedMultiplier;
-        float duration = distance / adjustedSpeed; // 根据距离和速度倍率计算持续时间
-        
-        Vector3 controlPoint;
-        
-        if (useParabolaPath)
-        {
-            // 计算抛物线控制点（最高点）
-            Vector3 midPoint = Vector3.Lerp(startPos, targetPos, 0.5f);
-            // 计算垂直方向（向上）
-            Vector3 upDirection = Vector3.up;
-            // 设置抛物线高度
-            controlPoint = midPoint + upDirection * parabolaHeight;
-        }
-        else
-        {
-            // 使用直线运动
-            controlPoint = Vector3.Lerp(startPos, targetPos, 0.5f);
-        }
+        // 计算水平距离
+        float horizontalDistance = Vector3.Distance(new Vector3(startPos.x, 0, 0), new Vector3(targetPos.x, 0, 0));
+        float duration = horizontalDistance / parabolaSpeed; // 根据距离和速度计算时间
         
         float elapsedTime = 0f;
-        
         while (elapsedTime < duration)
         {
             elapsedTime += Time.deltaTime;
             float t = elapsedTime / duration;
             
-            // 使用平滑的插值
-            t = Mathf.SmoothStep(0, 1, t);
+            // 使用平滑的抛物线公式，确保运动流畅
+            // 使用二次函数：y = -4h(t-0.5)² + h，其中h是高度
+            float horizontalPos = Mathf.Lerp(startPos.x, targetPos.x, t);
+            float verticalOffset = -4 * parabolaHeight * (t - 0.5f) * (t - 0.5f) + parabolaHeight;
             
-            // 使用二次贝塞尔曲线计算抛物线路径
-            Vector3 position = CalculateQuadraticBezierPoint(t, startPos, controlPoint, targetPos);
-            playerTransform.position = position;
+            playerTransform.position = new Vector3(horizontalPos, startPos.y + verticalOffset, startPos.z);
             yield return null;
         }
         
-        // 确保到达目标位置
+        // 确保最终位置精确，避免位置误差
         playerTransform.position = targetPos;
-        
+
         // 重新启用玩家控制
-        if (playerController != null)
+        if (playerMovement != null)
         {
-            playerController.enabled = true;
+            playerMovement.enabled = true;
         }
-        
-        // 清除速度
+
+        // 恢复物理状态 - 给予一个向下的初始速度，避免停顿
         if (playerRb2D != null)
         {
-            playerRb2D.velocity = Vector2.zero;
+            playerRb2D.gravityScale = 1f; // 恢复重力
+            // 给一个小幅度的向下速度，避免停顿感
+            playerRb2D.velocity = new Vector2(0f, -6f);
+            playerRb2D.angularVelocity = 0f;
         }
-        
-        Debug.Log($"玩家已平滑回弹到目标位置: {targetPos}");
     }
     
-    // 计算二次贝塞尔曲线点
-    private Vector3 CalculateQuadraticBezierPoint(float t, Vector3 p0, Vector3 p1, Vector3 p2)
+    // 方法已移除 - 现在使用直接反弹，不需要计算贝塞尔曲线
+    private void Update()
     {
-        // B(t) = (1-t)²P0 + 2(1-t)tP1 + t²P2
-        float u = 1 - t;
-        float tt = t * t;
-        float uu = u * u;
-        
-        Vector3 point = uu * p0; // (1-t)²P0
-        point += 2 * u * t * p1; // 2(1-t)tP1
-        point += tt * p2; // t²P2
-        
-        return point;
+        // 更精确的起跳位置记录
+        if (playerMovement != null)
+        {
+            // 当玩家开始冲刺时记录位置（更准确）
+            if (playerMovement.isDash && !hasRecordedStartPos)
+            {
+                // 记录玩家当前位置作为起跳点
+                UpdatePlayerOriginalPos();
+                hasRecordedStartPos = true;
+            }
+            
+            // 当玩家停止冲刺时重置记录状态
+            if (!playerMovement.isDash)
+            {
+                hasRecordedStartPos = false;
+            }
+        }
     }
+
     private void OnDrawGizmosSelected()
     {
         Gizmos.color = Color.red;
