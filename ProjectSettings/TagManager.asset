@@ -8,6 +8,7 @@ TagManager:
   - Ground
   - Spike
   - Water
+  - Book
   layers:
   - Default
   - TransparentFX

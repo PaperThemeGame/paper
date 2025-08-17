@@ -19,26 +19,30 @@ public class Water : MonoBehaviour
         playerMovement = GameObject.FindWithTag("Player").GetComponent<PlayerMovement>();
     }
 
-    void OnCollisionEnter2D(Collision2D collision)
-    {
-        if (collision.gameObject.CompareTag("Player"))
-        {
-            playerMovement.Respawn(); //触碰尖刺时重生
-        }
-        else if (collision.gameObject.CompareTag("CanDestory")) //泡泡进入水中被推动
-        {
-            Rigidbody2D rb = collision.gameObject.GetComponent<Rigidbody2D>();
-            if (rb != null)
-            {
-                rb.bodyType = RigidbodyType2D.Dynamic;
-                rb.AddForce(Vector2.right * pushForce, ForceMode2D.Impulse);
-            }
-        }
-    }
+    // void OnCollisionEnter2D(Collision2D collision)
+    // {
+    //     if (collision.gameObject.CompareTag("Player"))
+    //     {
+    //         playerMovement.Respawn(); //触碰尖刺时重生
+    //     }
+    //     else if (collision.gameObject.CompareTag("CanDestory")) //泡泡进入水中被推动
+    //     {
+    //         Rigidbody2D rb = collision.gameObject.GetComponent<Rigidbody2D>();
+    //         if (rb != null)
+    //         {
+    //             rb.bodyType = RigidbodyType2D.Dynamic;
+    //             rb.AddForce(Vector2.right * pushForce, ForceMode2D.Impulse);
+    //         }
+    //     }
+    // }
 
     private void OnTriggerStay2D(Collider2D other)
     {
-        if (other.CompareTag("CanDestory"))
+        if (other.gameObject.CompareTag("Player"))
+        {
+            playerMovement.Respawn(); //触碰尖刺时重生
+        }
+        else if (other.CompareTag("CanDestory"))
         {
             Rigidbody2D rb = other.GetComponent<Rigidbody2D>();
             if (rb != null)

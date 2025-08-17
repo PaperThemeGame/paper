@@ -41,6 +41,7 @@ public class PlayerMovement : MonoBehaviour
     public Vector2 wallBoxOffset;
 
     [Header("状态")]
+    public bool canMove = true;
     public bool isJumping;
     public bool isDash;
     public bool isStillOnGround;
@@ -48,6 +49,7 @@ public class PlayerMovement : MonoBehaviour
     private Animator animator;
     private Vector2 moveInput;
     private Rigidbody2D rb2D;
+    private GameObject book;
     private float gravityScale;
 
     private float coyoteTimer;
@@ -55,7 +57,9 @@ public class PlayerMovement : MonoBehaviour
 
     private void Start()
     {
-        rb2D=GetComponent<Rigidbody2D>();
+        book = GameObject.FindWithTag("Book");
+        book.SetActive(false);
+        rb2D =GetComponent<Rigidbody2D>();
         gravityScale=rb2D.gravityScale;
         dashTimer = dashCoolTime;
         animator=GetComponent<Animator>();
@@ -63,6 +67,10 @@ public class PlayerMovement : MonoBehaviour
 
     private void Update()
     {
+        if (canMove)
+        {
+            
+        
         moveInput.x = Input.GetAxisRaw("Horizontal");
         moveInput.y = Input.GetAxisRaw("Vertical");
 
@@ -119,7 +127,7 @@ public class PlayerMovement : MonoBehaviour
         {
             Dash(moveInput);
         }
-        
+
         if (Input.GetKeyDown(KeyCode.R))
         {
             Respawn();
@@ -129,11 +137,20 @@ public class PlayerMovement : MonoBehaviour
         {
             ChangeGravityScale();
         }
+    }
 
+        #region 书本
+        if (Input.GetKeyDown(KeyCode.Tab))
+        {
+            book.SetActive(!book.activeSelf);
+            canMove = !canMove;
+        }
+        #endregion
     }
 
     private void FixedUpdate()
     {
+        
         if (isDash) return;
         Run();
     }
