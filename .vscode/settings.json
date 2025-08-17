@@ -56,5 +56,6 @@
         "temp/": true,
         "Temp/": true
     },
-    "dotnet.defaultSolution": "paper.sln"
+    "dotnet.defaultSolution": "paper.sln",
+    "dotnet.preferCSharpExtension": true
 }
