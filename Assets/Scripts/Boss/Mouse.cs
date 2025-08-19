@@ -65,9 +65,18 @@ public class Mouse : MonoBehaviour
     {
         isDropping = true;
         float playerX = GetPlayerXPosition();
-        Vector3 dropPosition = GetDropPosition(playerX);
-        yield return StartCoroutine(ShowWarningLine(dropPosition));
-        SpawnFallingBlock(dropPosition);
+        float bossX = transform.position.x;
+        float distanceToPlayer = Mathf.Abs(playerX - bossX);
+
+        // 如果玩家在攻击范围内才扔方块
+        if (distanceToPlayer <= dropRange / 2f)
+        {
+            Vector3 dropPosition = GetDropPosition(playerX);
+            yield return StartCoroutine(ShowWarningLine(dropPosition));
+            SpawnFallingBlock(dropPosition);
+        }
+        // 如果玩家不在范围内，跳过这次攻击
+
         lastDropTime = Time.time;
         isDropping = false;
     }
@@ -86,9 +95,19 @@ public class Mouse : MonoBehaviour
     private Vector3 GetDropPosition(float targetX)
     {
         float topY = mainCamera.ScreenToWorldPoint(new Vector3(0, Screen.height, 0)).y - 2f;
+        
+        // 使用dropRange限制攻击范围
+        float centerX = transform.position.x;  // Boss的中心位置
+        float minX = centerX - dropRange / 2f;  // 攻击范围左边界
+        float maxX = centerX + dropRange / 2f;  // 攻击范围右边界
+        
+        // 确保攻击范围在屏幕内
         float screenLeft = mainCamera.ScreenToWorldPoint(Vector3.zero).x;
         float screenRight = mainCamera.ScreenToWorldPoint(new Vector3(Screen.width, 0, 0)).x;
-        targetX = Mathf.Clamp(targetX, screenLeft, screenRight);
+        minX = Mathf.Max(minX, screenLeft);
+        maxX = Mathf.Min(maxX, screenRight);
+        
+        targetX = Mathf.Clamp(targetX, minX, maxX);
         return new Vector3(targetX, topY, 0f);
     }
 
@@ -144,20 +163,60 @@ public class Mouse : MonoBehaviour
         rb.velocity = Vector2.down * dropSpeed;
         block.AddComponent<FallingBlock>();
     }
+
+    // 在Scene视图中可视化攻击范围
+    private void OnDrawGizmos()
+    {
+        // 设置攻击范围的颜色为红色半透明
+        Gizmos.color = new Color(1f, 0f, 0f, 0.3f);
+        
+        // 计算攻击范围的左右边界
+        float centerX = transform.position.x;
+        float minX = centerX - dropRange / 2f;
+        float maxX = centerX + dropRange / 2f;
+        
+        // 绘制攻击范围的矩形区域
+        Vector3 center = new Vector3(centerX, transform.position.y, 0f);
+        Vector3 size = new Vector3(dropRange, 0.5f, 0f);  // 宽度为攻击范围，高度为2单位
+        
+        // 绘制填充矩形
+        Gizmos.DrawCube(center, size);
+        
+        // 设置边框颜色为红色不透明
+        Gizmos.color = Color.red;
+        
+        // 绘制矩形边框
+        Gizmos.DrawWireCube(center, size);
+        
+        // 绘制攻击范围的文字标签
+#if UNITY_EDITOR
+        UnityEditor.Handles.Label(new Vector3(centerX-1, transform.position.y , 0f), 
+            $"攻击范围: {dropRange}");
+#endif
+    }
 }
 
 public class FallingBlock : MonoBehaviour
 {
     private void OnTriggerEnter2D(Collider2D other)
     {
+        // 只有当碰撞到Player或Ground时才处理
         if (other.CompareTag("Player"))
         {
-            GameOver(other.gameObject);
+            // 检查玩家是否在岩石下方（玩家Y坐标 > 岩石Y坐标）
+            if (other.transform.position.y < transform.position.y)
+            {
+                // 玩家在岩石下方，碰撞有效
+                GameOver(other.gameObject);
+            }
+            // 如果岩石在玩家下方，碰撞无效，什么都不做
         }
-        else if (!other.isTrigger)
+        else if (other.CompareTag("Ground"))
         {
+            // 碰到地面，销毁方块
             Destroy(gameObject);
         }
+        // 其他情况不做处理，方块会穿过
     }
 
     private void GameOver(GameObject player)

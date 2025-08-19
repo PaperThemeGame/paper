@@ -12,6 +12,7 @@ GameObject:
   - component: {fileID: 7607266762003904027}
   - component: {fileID: 5520171232129436743}
   - component: {fileID: 3286690393684087346}
+  - component: {fileID: -2930207320202678143}
   m_Layer: 0
   m_Name: rublish
   m_TagString: Untagged
@@ -158,3 +159,20 @@ BoxCollider2D:
   serializedVersion: 2
   m_Size: {x: 1, y: 1}
   m_EdgeRadius: 0
+--- !u!114 &-2930207320202678143
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2929611074393100245}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 89779f1d367ae6242993e10c4639642b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  disappearOnPlayer: 1
+  disappearOnGround: 1
+  passThroughBlocks: 1
+  passThroughEnemies: 1
+  passThroughPlatforms: 0

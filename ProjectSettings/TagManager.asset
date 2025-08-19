@@ -5,6 +5,10 @@ TagManager:
   serializedVersion: 2
   tags:
   - CanDestory
+  - Ground
+  - Spike
+  - Water
+  - Book
   layers:
   - Default
   - TransparentFX
@@ -13,8 +17,8 @@ TagManager:
   - Water
   - UI
   - Ground
-  - 
-  - 
+  - bubble
+  - player
   - 
   - 
   - 
